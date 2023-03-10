@@ -59,33 +59,43 @@ suspend fun requestDownload(
             val downloadId = downloadFile(downloadRequest, context)
             Timber.d("$downloadId")
 
-            val subtitleStreamUrl =
-                jellyfinRepository.getSubtitleStreamUrl(itemId, episode.mediaSources?.get(0)?.id!!)
-            if (subtitleStreamUrl.length > 0) {
-                var codec = ""
-                if (subtitleStreamUrl.contains("ass"))
-                    codec = ".ass"
-                else
-                    codec = ".srt"
-
-                val downloadSubtitleRequest = DownloadManager.Request(Uri.parse(subtitleStreamUrl))
-                    .setTitle("subtitle :" + metadata.name)
-                    .setDescription("Downloading")
-                    .setDestinationUri(
-                        Uri.fromFile(
-                            File(
-                                defaultStorage,
-                                metadata.id.toString() + codec
-                            )
-                        )
+            if (!File(defaultStorage, "${metadata.id}.ass").exists() && !File(
+                    defaultStorage, "${metadata.id}.srt").exists()
+            ) {
+                val subtitleStreamUrl =
+                    jellyfinRepository.getSubtitleStreamUrl(
+                        itemId,
+                        episode.mediaSources?.get(0)?.id!!
                     )
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                downloadFile(downloadSubtitleRequest, context)
-                downloadDatabase.updateSubtitle(
-                    metadata.id,
-                    File(defaultStorage, metadata.id.toString() + codec).absolutePath
-                )
+                if (subtitleStreamUrl.length > 0) {
+                    var codec = ""
+                    if (subtitleStreamUrl.contains("ass"))
+                        codec = ".ass"
+                    else
+                        codec = ".srt"
+
+                    val downloadSubtitleRequest =
+                        DownloadManager.Request(Uri.parse(subtitleStreamUrl))
+                            .setTitle("subtitle :" + metadata.name)
+                            .setDescription("Downloading")
+                            .setDestinationUri(
+                                Uri.fromFile(
+                                    File(
+                                        defaultStorage,
+                                        metadata.id.toString() + codec
+                                    )
+                                )
+                            )
+                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    downloadFile(downloadSubtitleRequest, context)
+                    downloadDatabase.updateSubtitle(
+                        metadata.id,
+                        File(defaultStorage, metadata.id.toString() + codec).absolutePath
+                    )
+                }
             }
+
+
             downloadDatabase.updateDownloadId(metadata.id, downloadId)
         }
     } catch (e: Exception) {
@@ -210,8 +220,8 @@ fun deleteDownloadedEpisode(downloadDatabase: DownloadDatabaseDao, itemId: UUID)
     try {
         downloadDatabase.deleteItem(itemId)
         File(defaultStorage, itemId.toString()).delete()
-        File(defaultStorage, itemId.toString()+".ass").delete()
-        File(defaultStorage, itemId.toString()+".srt").delete()
+        File(defaultStorage, itemId.toString() + ".ass").delete()
+        File(defaultStorage, itemId.toString() + ".srt").delete()
     } catch (e: Exception) {
         Timber.e(e)
     }
