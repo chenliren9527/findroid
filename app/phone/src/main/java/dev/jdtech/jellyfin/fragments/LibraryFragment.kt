@@ -1,12 +1,7 @@
 package dev.jdtech.jellyfin.fragments
 
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -29,11 +24,11 @@ import dev.jdtech.jellyfin.models.CollectionType
 import dev.jdtech.jellyfin.models.SortBy
 import dev.jdtech.jellyfin.utils.checkIfLoginRequired
 import dev.jdtech.jellyfin.viewmodels.LibraryViewModel
-import java.lang.IllegalArgumentException
-import javax.inject.Inject
 import kotlinx.coroutines.launch
 import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.SortOrder
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class LibraryFragment : Fragment() {
@@ -113,7 +108,7 @@ class LibraryFragment : Fragment() {
         binding.itemsRecyclerView.adapter =
             ViewItemPagingAdapter(
                 ViewItemPagingAdapter.OnClickListener { item ->
-                    if (args.libraryType == CollectionType.BoxSets.type) {
+                    if (args.libraryType == CollectionType.BoxSets.type || item.type == BaseItemKind.BOX_SET) {
                         navigateToCollectionFragment(item)
                     } else {
                         navigateToMediaInfoFragment(item)
