@@ -5,19 +5,21 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import dev.jdtech.jellyfin.AppPreferences
 import dev.jdtech.jellyfin.database.DownloadDatabaseDao
 import dev.jdtech.jellyfin.models.DownloadItem
 import dev.jdtech.jellyfin.models.DownloadSeriesMetadata
+import dev.jdtech.jellyfin.models.ExternalSubtitle
 import dev.jdtech.jellyfin.models.PlayerItem
 import dev.jdtech.jellyfin.repository.JellyfinRepository
-import java.io.File
-import java.util.UUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.UserItemDataDto
 import timber.log.Timber
+import java.io.File
+import java.util.*
 
 var defaultStorage: File? = null
 
@@ -41,6 +43,7 @@ suspend fun requestDownload(
                     metadata.id.toString() + ".downloading"
                 )
             )
+
         )
         .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
 
@@ -48,9 +51,41 @@ suspend fun requestDownload(
         if (downloadDatabase.exists(metadata.id))
             downloadDatabase.deleteItem(metadata.id)
         downloadDatabase.insertItem(metadata)
-        if (!File(defaultStorage, metadata.id.toString()).exists() && !File(defaultStorage, "${metadata.id}.downloading").exists()) {
+        if (!File(defaultStorage, metadata.id.toString()).exists() && !File(
+                defaultStorage,
+                "${metadata.id}.downloading"
+            ).exists()
+        ) {
             val downloadId = downloadFile(downloadRequest, context)
             Timber.d("$downloadId")
+
+            val subtitleStreamUrl =
+                jellyfinRepository.getSubtitleStreamUrl(itemId, episode.mediaSources?.get(0)?.id!!)
+            if (subtitleStreamUrl.length > 0) {
+                var codec = ""
+                if (subtitleStreamUrl.contains("ass"))
+                    codec = ".ass"
+                else
+                    codec = ".srt"
+
+                val downloadSubtitleRequest = DownloadManager.Request(Uri.parse(subtitleStreamUrl))
+                    .setTitle("subtitle :" + metadata.name)
+                    .setDescription("Downloading")
+                    .setDestinationUri(
+                        Uri.fromFile(
+                            File(
+                                defaultStorage,
+                                metadata.id.toString() + codec
+                            )
+                        )
+                    )
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                downloadFile(downloadSubtitleRequest, context)
+                downloadDatabase.updateSubtitle(
+                    metadata.id,
+                    File(defaultStorage, metadata.id.toString() + codec).absolutePath
+                )
+            }
             downloadDatabase.updateDownloadId(metadata.id, downloadId)
         }
     } catch (e: Exception) {
@@ -81,15 +116,32 @@ fun checkDownloadStatus(downloadDatabase: DownloadDatabaseDao, context: Context)
             val result = context.getSystemService<DownloadManager>()!!.query(query)
             result.moveToFirst()
             if (result.getInt(7) == 8) {
-                File(defaultStorage, "${item.id}.downloading").renameTo(File(defaultStorage, item.id.toString()))
+                File(defaultStorage, "${item.id}.downloading").renameTo(
+                    File(
+                        defaultStorage,
+                        item.id.toString()
+                    )
+                )
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 }
 
 fun loadDownloadedEpisodes(downloadDatabase: DownloadDatabaseDao): List<PlayerItem> {
     val items = downloadDatabase.loadItems()
+
     return items.map {
+
+        val externalSubtitles = mutableListOf<ExternalSubtitle>()
+        externalSubtitles.add(
+            ExternalSubtitle(
+                it.id.toString(),
+                "default",
+                it.externalSubtitle.toUri(),
+                if (it.externalSubtitle.contains("srt")) "application/x-subrip" else "text/x-ssa"
+            )
+        )
         PlayerItem(
             name = it.name,
             itemId = it.id,
@@ -98,7 +150,9 @@ fun loadDownloadedEpisodes(downloadDatabase: DownloadDatabaseDao): List<PlayerIt
             mediaSourceUri = File(defaultStorage, it.id.toString()).absolutePath,
             parentIndexNumber = it.parentIndexNumber,
             indexNumber = it.indexNumber,
-            item = it
+            item = it,
+            externalSubtitles = externalSubtitles
+
         )
     }
 }
@@ -107,7 +161,11 @@ fun isItemAvailable(itemId: UUID): Boolean {
     return File(defaultStorage, itemId.toString()).exists()
 }
 
-fun canRetryDownload(itemId: UUID, downloadDatabaseDao: DownloadDatabaseDao, context: Context): Boolean {
+fun canRetryDownload(
+    itemId: UUID,
+    downloadDatabaseDao: DownloadDatabaseDao,
+    context: Context
+): Boolean {
     if (isItemAvailable(itemId))
         return false
     val downloadId = downloadDatabaseDao.loadItem(itemId)?.downloadId ?: return false
@@ -152,6 +210,8 @@ fun deleteDownloadedEpisode(downloadDatabase: DownloadDatabaseDao, itemId: UUID)
     try {
         downloadDatabase.deleteItem(itemId)
         File(defaultStorage, itemId.toString()).delete()
+        File(defaultStorage, itemId.toString()+".ass").delete()
+        File(defaultStorage, itemId.toString()+".srt").delete()
     } catch (e: Exception) {
         Timber.e(e)
     }
@@ -204,7 +264,9 @@ fun baseItemDtoToDownloadMetadata(item: BaseItemDto): DownloadItem {
         indexNumber = item.indexNumber,
         playbackPosition = item.userData?.playbackPositionTicks ?: 0,
         playedPercentage = item.userData?.playedPercentage,
-        overview = item.overview
+        overview = item.overview,
+        externalSubtitle = ""
+
     )
 }
 

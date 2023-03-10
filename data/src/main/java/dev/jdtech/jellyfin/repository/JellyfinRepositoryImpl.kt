@@ -7,29 +7,15 @@ import dev.jdtech.jellyfin.api.JellyfinApi
 import dev.jdtech.jellyfin.models.Intro
 import dev.jdtech.jellyfin.models.SortBy
 import dev.jdtech.jellyfin.models.TrickPlayManifest
-import io.ktor.util.cio.toByteArray
-import io.ktor.utils.io.ByteReadChannel
-import java.util.UUID
+import io.ktor.util.cio.*
+import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.api.client.extensions.get
-import org.jellyfin.sdk.model.api.BaseItemDto
-import org.jellyfin.sdk.model.api.BaseItemKind
-import org.jellyfin.sdk.model.api.DeviceOptionsDto
-import org.jellyfin.sdk.model.api.DeviceProfile
-import org.jellyfin.sdk.model.api.DirectPlayProfile
-import org.jellyfin.sdk.model.api.DlnaProfileType
-import org.jellyfin.sdk.model.api.GeneralCommandType
-import org.jellyfin.sdk.model.api.ItemFields
-import org.jellyfin.sdk.model.api.ItemFilter
-import org.jellyfin.sdk.model.api.MediaSourceInfo
-import org.jellyfin.sdk.model.api.PlaybackInfoDto
-import org.jellyfin.sdk.model.api.SortOrder
-import org.jellyfin.sdk.model.api.SubtitleDeliveryMethod
-import org.jellyfin.sdk.model.api.SubtitleProfile
-import org.jellyfin.sdk.model.api.UserConfiguration
+import org.jellyfin.sdk.model.api.*
 import timber.log.Timber
+import java.util.*
 
 class JellyfinRepositoryImpl(private val jellyfinApi: JellyfinApi) : JellyfinRepository {
     override suspend fun getUserViews(): List<BaseItemDto> = withContext(Dispatchers.IO) {
@@ -223,6 +209,26 @@ class JellyfinRepositoryImpl(private val jellyfinApi: JellyfinApi) : JellyfinRep
             }
         }
 
+    override suspend fun getSubtitleStreamUrl(itemId: UUID, mediaSourceId: String): String =
+        withContext(Dispatchers.IO) {
+            try {
+
+
+                val mediaStreams =
+                    getMediaSources(itemId)[0].mediaStreams?.filter { mediaStream: MediaStream -> mediaStream.codec == "ass" || mediaStream.codec == "subrip" }
+                        ?.filter { mediaStream: MediaStream -> mediaStream.isExternal == true }
+
+                if (mediaStreams!!.isEmpty())
+                    ""
+                else
+                    jellyfinApi.api.baseUrl+ mediaStreams?.get(0)?.deliveryUrl
+
+            } catch (e: Exception) {
+                Timber.e(e)
+                ""
+            }
+        }
+
     override suspend fun getIntroTimestamps(itemId: UUID): Intro? =
         withContext(Dispatchers.IO) {
             // https://github.com/ConfusedPolarBear/intro-skipper/blob/master/docs/api.md
@@ -230,7 +236,10 @@ class JellyfinRepositoryImpl(private val jellyfinApi: JellyfinApi) : JellyfinRep
             pathParameters["itemId"] = itemId
 
             try {
-                return@withContext jellyfinApi.api.get<Intro>("/Episode/{itemId}/IntroTimestamps/v1", pathParameters).content
+                return@withContext jellyfinApi.api.get<Intro>(
+                    "/Episode/{itemId}/IntroTimestamps/v1",
+                    pathParameters
+                ).content
             } catch (e: Exception) {
                 return@withContext null
             }
@@ -243,7 +252,10 @@ class JellyfinRepositoryImpl(private val jellyfinApi: JellyfinApi) : JellyfinRep
             pathParameters["itemId"] = itemId
 
             try {
-                return@withContext jellyfinApi.api.get<TrickPlayManifest>("/Trickplay/{itemId}/GetManifest", pathParameters).content
+                return@withContext jellyfinApi.api.get<TrickPlayManifest>(
+                    "/Trickplay/{itemId}/GetManifest",
+                    pathParameters
+                ).content
             } catch (e: Exception) {
                 return@withContext null
             }
@@ -257,7 +269,10 @@ class JellyfinRepositoryImpl(private val jellyfinApi: JellyfinApi) : JellyfinRep
             pathParameters["width"] = width
 
             try {
-                return@withContext jellyfinApi.api.get<ByteReadChannel>("/Trickplay/{itemId}/{width}/GetBIF", pathParameters).content.toByteArray()
+                return@withContext jellyfinApi.api.get<ByteReadChannel>(
+                    "/Trickplay/{itemId}/{width}/GetBIF",
+                    pathParameters
+                ).content.toByteArray()
             } catch (e: Exception) {
                 return@withContext null
             }
@@ -355,7 +370,10 @@ class JellyfinRepositoryImpl(private val jellyfinApi: JellyfinApi) : JellyfinRep
     override suspend fun updateDeviceName(name: String) {
         jellyfinApi.jellyfin.deviceInfo?.id?.let { id ->
             withContext(Dispatchers.IO) {
-                jellyfinApi.devicesApi.updateDeviceOptions(id, DeviceOptionsDto(0, customName = name))
+                jellyfinApi.devicesApi.updateDeviceOptions(
+                    id,
+                    DeviceOptionsDto(0, customName = name)
+                )
             }
         }
     }

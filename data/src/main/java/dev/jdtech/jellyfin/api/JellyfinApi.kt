@@ -5,18 +5,7 @@ import dev.jdtech.jellyfin.Constants
 import dev.jdtech.jellyfin.data.BuildConfig
 import java.util.UUID
 import org.jellyfin.sdk.api.client.HttpClientOptions
-import org.jellyfin.sdk.api.client.extensions.devicesApi
-import org.jellyfin.sdk.api.client.extensions.itemsApi
-import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
-import org.jellyfin.sdk.api.client.extensions.playStateApi
-import org.jellyfin.sdk.api.client.extensions.quickConnectApi
-import org.jellyfin.sdk.api.client.extensions.sessionApi
-import org.jellyfin.sdk.api.client.extensions.systemApi
-import org.jellyfin.sdk.api.client.extensions.tvShowsApi
-import org.jellyfin.sdk.api.client.extensions.userApi
-import org.jellyfin.sdk.api.client.extensions.userLibraryApi
-import org.jellyfin.sdk.api.client.extensions.userViewsApi
-import org.jellyfin.sdk.api.client.extensions.videosApi
+import org.jellyfin.sdk.api.client.extensions.*
 import org.jellyfin.sdk.createJellyfin
 import org.jellyfin.sdk.model.ClientInfo
 
@@ -56,6 +45,7 @@ class JellyfinApi(
     val showsApi = api.tvShowsApi
     val sessionApi = api.sessionApi
     val videosApi = api.videosApi
+    val subtitleApi = api.subtitleApi
     val mediaInfoApi = api.mediaInfoApi
     val playStateApi = api.playStateApi
     val quickConnectApi = api.quickConnectApi

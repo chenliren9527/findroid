@@ -3,9 +3,9 @@ package dev.jdtech.jellyfin.models
 import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.util.UUID
 import kotlinx.parcelize.Parcelize
 import org.jellyfin.sdk.model.api.BaseItemKind
+import java.util.*
 
 @Parcelize
 @Entity(tableName = "downloads")
@@ -23,4 +23,5 @@ data class DownloadItem(
     val playbackPosition: Long? = null,
     val playedPercentage: Double? = null,
     val downloadId: Long? = null,
+    val externalSubtitle: String
 ) : Parcelable
