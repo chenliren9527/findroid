@@ -32,8 +32,11 @@ class ItemsPagingSource(
                 sortBy = listOf(sortBy.SortString),
                 sortOrder = listOf(sortOrder),
                 startIndex = position,
+                excludeItemTypes= listOf(BaseItemKind.FOLDER,BaseItemKind.EPISODE,BaseItemKind.SEASON),
+                isMissing = false,
                 limit = params.loadSize
             ).content.items.orEmpty()
+
             LoadResult.Page(
                 data = response,
                 prevKey = if (position == 0) null else position - params.loadSize,
