@@ -39,7 +39,7 @@ constructor(
         parentId: UUID,
         libraryType: String?,
         sortBy: SortBy = SortBy.defaultValue,
-        sortOrder: SortOrder = SortOrder.ASCENDING
+        sortOrder: SortOrder = SortOrder.DESCENDING
     ) {
         itemsloaded = true
         Timber.d("$libraryType")

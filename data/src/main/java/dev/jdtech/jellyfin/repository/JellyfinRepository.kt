@@ -23,7 +23,7 @@ interface JellyfinRepository {
         includeTypes: List<BaseItemKind>? = null,
         recursive: Boolean = false,
         sortBy: SortBy = SortBy.defaultValue,
-        sortOrder: SortOrder = SortOrder.ASCENDING
+        sortOrder: SortOrder = SortOrder.DESCENDING
     ): List<BaseItemDto>
 
     suspend fun getItemsPaging(
