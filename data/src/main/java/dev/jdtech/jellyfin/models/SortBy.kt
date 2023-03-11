@@ -9,7 +9,7 @@ enum class SortBy(val SortString: String) {
     RELEASE_DATE("PremiereDate");
 
     companion object {
-        val defaultValue = NAME
+        val defaultValue = RELEASE_DATE
 
         fun fromString(string: String): SortBy {
             return try {
