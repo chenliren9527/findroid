@@ -147,7 +147,7 @@ fun loadDownloadedEpisodes(downloadDatabase: DownloadDatabaseDao): List<PlayerIt
         externalSubtitles.add(
             ExternalSubtitle(
                 it.id.toString(),
-                "default",
+                "chi",
                 it.externalSubtitle.toUri(),
                 if (it.externalSubtitle.contains("srt")) "application/x-subrip" else "text/x-ssa"
             )
